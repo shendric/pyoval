@@ -52,6 +52,9 @@ from matplotlib.collections import PatchCollection
 from matplotlib.spines import Spine
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
+# user library
+from helpers import timedelta_str
+
 
 class CS2RefOrbit(object):
     """
@@ -1257,13 +1260,3 @@ def make_cmap(colors, position=None, bit=False, lut=256):
 
     cmap = mpl.colors.LinearSegmentedColormap('my_colormap', cdict, lut)
     return cmap
-
-def timedelta_str(td):
-    """
-    Solve an issue with negative timedelta strings
-    e.g. '-0:50:00' instead of '-1 day, 23:10:00'
-    returns unchanged str for positive timedeltas
-    """
-    if td.days < 0:
-        return '-' + str(datetime.timedelta() - td)
-    return str(td)
