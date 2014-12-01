@@ -16,7 +16,7 @@ class PathInfo():
         # Path to reference orbit files
         self.dir = EmptyObject()
         self.dir.workspace = os.path.dirname(__file__)
-        self.dir.SampleData = os.path.join(self.dir.workspace, 'testdata') 
+        self.dir.SampleData = os.path.join(self.dir.workspace, 'testdata')
         self.dir.RefOrbit = os.path.join(self.dir.SampleData, 'cs2')
         self.dir.RefCCOrbit = os.path.join(self.dir.SampleData, 'cs2cc')
         self.dir.SampleFigures = os.path.join(self.dir.workspace, 'testoutput')
@@ -24,7 +24,7 @@ class PathInfo():
         self.file = EmptyObject()
         self.file.example_orbit = r'Location_file_5399_20110415T140524_20110415T154438.txt'
         self.file.example_des_orbit = r'Location_file_10520_20120402T110305_20120402T124219.txt'
-        self.file.example_aem = os.path.join('aem', 
+        self.file.example_aem = os.path.join('aem',
                                              'HEM_PAM11_20110415T152401_20110415T164026.nc')
 
 
@@ -75,7 +75,7 @@ def example_resample_embird():
     #       * data is organized as vectors/array with identical shape
     #       * arrays exist for time, longitude, latitude, value (e.g. thickness, freeboard, ....)
     #       * time information is available as python datetime object (time zone UTC())
-    aem_file = os.path.join(info.dir.SampleData, info.file.example_aem)                            
+    aem_file = os.path.join(info.dir.SampleData, info.file.example_aem)
     aem = read_embird(aem_file)
 
     #===================================================================================
@@ -111,7 +111,7 @@ def example_resample_embird():
     resdata.set_data_unit('Meter')
 
     # Write ASCII data output
-    resdata.to_file(info.dir.SampleData)
+    resdata.to_file(info.dir.SampleFigures)
 
     # Create summary plot (in specified folder)
     resdata.summary_plot(info.dir.SampleFigures)
@@ -123,7 +123,7 @@ def test_asscending_orbit():
     reforbit = CS2RefOrbit()
     reforbit.limit_region(lat_limit=[82., 88.], lon_limit=[-120., -40.])
     reforbit.from_file(os.path.join(info.dir.RefCCOrbit, info.file.example_orbit))
-    reforbit.to_CCfile(folder=info.dir.SampleData)   
+    reforbit.to_CCfile(folder=info.dir.SampleData)
 
 
 def test_descending_orbit():
@@ -132,10 +132,10 @@ def test_descending_orbit():
     reforbit = CS2RefOrbit()
     reforbit.limit_region(lat_limit=[82., 88.], lon_limit=[-120., -40.])
     reforbit.from_file(os.path.join(info.dir.RefCCOrbit, info.file.example_des_orbit))
-    reforbit.to_CCfile(folder=info.dir.SampleData)   
+    reforbit.to_CCfile(folder=info.dir.SampleData)
 
 
-if __name__ == '__main__':       
+if __name__ == '__main__':
     example_resample_embird()
     test_descending_orbit()
     test_asscending_orbit()
