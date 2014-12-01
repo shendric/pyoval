@@ -1,0 +1,110 @@
+#    def from_cs2awi_aux(self, filename):
+#        """
+#        Temporary method to read CS-2 footprints from AWI orbit files
+#        filename : str
+#            Link to file
+#        """        
+#        self.fullpath = filename
+#        self.filename = os.path.basename(filename)
+#        self.orbit = int(self.filename.split('_')[1])
+#        self.header_size = 24
+#        self.record_size = 6*8
+#        # Get size of file
+#        self.cs2awi_file_size = os.path.getsize(filename)
+#        self.n_records = (self.cs2awi_file_size-self.header_size)/self.record_size
+#        # Read Content (time, lon, lat only)
+#        f = open(filename, 'rb')
+#        f.read(self.header_size)
+#        self.__secs = np.ndarray(shape=(self.n_records), dtype=np.float64)
+#        self.lon = np.ndarray((self.n_records), dtype=np.float64)
+#        self.lat = np.ndarray((self.n_records), dtype=np.float64)
+#        for i in np.arange(self.n_records):
+#            rec = f.read(self.record_size)  
+#            self.lon[i], self.lat[i], iconc, itype, stype, self.__secs[i] = struct.unpack('<6d', rec)
+#        f.close()        
+#        # Kill NaNs
+#        valid = np.where(np.isfinite(self.__secs+self.lon+self.lat))[0]
+#        self.__secs = self.__secs[valid]
+#        self.lon = self.lon[valid]
+#        self.lat = self.lat[valid]
+#        self.n_records = len(valid)        
+#        # Convert seconds to time
+#        self.__calcTime(start_time_index=2)
+#        # Calculate corner coordinates
+#        self.__calc_fp_corner_coords()
+
+
+
+    def __calcTime(self, start_time_index = 3):
+        # Get Timing (YYYY-MM-DD from filename, HH-MI-SS from secs)
+        # 1) Get start time
+        self.time = np.ndarray(shape=(self.n_records), dtype=object)
+#        self.time2 = np.ndarray(shape=(self.n_records), dtype=object)
+#        self.__timedelta = np.ndarray(shape=(self.n_records), dtype=object)
+#        start_time_full = dateutil.parser.parse(self.filename.split('_')[start_time_index])
+#        self.__start_time = start_time_full.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.utc)
+        # get time delta
+        self.__msecs = self.__secs - np.floor(self.__secs)        
+        self.__msecs *= 1e6
+        self.__secs = np.floor(self.__secs)               
+        # Calculate time stamp:
+        #  1.1.2000 + number of day + seconds
+        for i in np.arange(self.n_records):
+            self.time[i] = datetime.datetime(2000, 1, 1, tzinfo=pytz.utc) + \
+                           datetime.timedelta(days=self.day[i],  
+                                              seconds=int(self.__secs[i]), 
+                                              microseconds=int(self.__msecs[i]))
+#            self.__timedelta[i] = datetime.timedelta(seconds=int(self.__secs[i]), 
+#                                                     microseconds=int(self.__msecs[i]))
+        # Calculate time stamp                                       
+        #self.time = self.__start_time + self.__timedelta 
+		
+		
+#def points_in_polygon(x, y, px, py, return_type='bool'):
+#    """ 
+#    Calculates which points x, y are inside a polygon, defined by px, py
+#    Arguments:
+#        x, y : float/double array
+#            positions of points to be tested
+#        px, py : float/double array with minimum of 3 points
+#    Keywords:
+#        return_type : str
+#            Indicates the type of return value
+#            'bool' (default) - Array of type bool of same length as x/y
+#                               True: in polygon, False: outside polygon
+#            'masked' - Masked numpy array (x, y)
+#    Return:
+#        Depending on keyword return either bool array of masked (x,y) arrays
+#    """
+#    # Sanity checks
+#    if np.shape(x) != np.shape(y):
+#        raise ValueError('Position of input points are of different shape')
+#    if np.shape(px) != np.shape(py):
+#        raise ValueError('Position of polygon points are of different shape')    
+#    if len(px) < 3:
+#        raise ValueError('Not enough points to span polygon (px, py)')            
+#    n = len(x)  # Length of input data
+#    m = len(px) # Number of points that define the polygon
+#    a = np.ndarray(shape=(n), dtype=np.float64)
+#    c = np.ndarray(shape=(n), dtype=np.float64)
+#    # Close polygon
+#    px_closed = np.concatenate((px, [px[0]]))
+#    py_closed = np.concatenate((py, [py[0]]))
+#    # Calculate angular sum        
+#    for i in np.arange(m):
+#         vec1  = np.squeeze([[px_closed[i] - x], [py_closed[i] - y ]])
+#         vec2  = np.squeeze([[px_closed[i+1] - x], [py_closed[i+1] - y ]])
+#         for j in np.arange(n):
+#              c[j] = np.dot(vec1[:,j], vec2[:,j]) / \
+#                     (np.linalg.norm(vec1[:,j]) * np.linalg.norm(vec2[:,j]))
+#         a += np.arccos(c)
+#    # Points in Polygon: Sum of all angles equals 2pi
+#    in_polygon = np.abs(a - 2.0*np.pi) < 1.0e-5
+#    # Return data depending on output choice
+#    if return_type == 'bool':
+#        return in_polygon
+#    elif return_type == 'masked':
+#        return (np.ma.masked_where(~in_polygon, x), 
+#                np.ma.masked_where(~in_polygon, y))
+#    else:
+#        raise ValueError('return_type '+str(return_type)+' unkown. \'bool\' (default) or \'masked\'')
