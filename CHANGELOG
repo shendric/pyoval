@@ -1,0 +1,10 @@
+Version Changes:
+
+v1.0 - 2014-08-00 - Initial Version
+
+v1.1 - 2014-10-09 - Added hot fix to straighten oud SIN positions
+
+v1.2 - 2014-10-28 - Generalized handling of SIN position handling
+                    Reworked of SIN identification (now automatic distance treshold)
+                    added sarin_debug_map method to CS2RefOrbit
+                    added debug_map method to GreatCircleTrack
