@@ -122,8 +122,8 @@ def test_asscending_orbit():
     info = PathInfo()
     reforbit = CS2RefOrbit()
     reforbit.limit_region(lat_limit=[82., 88.], lon_limit=[-120., -40.])
-    reforbit.from_file(os.path.join(info.dir.RefCCOrbit, info.file.example_orbit))
-    reforbit.to_CCfile(folder=info.dir.SampleData)
+    reforbit.from_file(os.path.join(info.dir.RefOrbit, info.file.example_orbit))
+    reforbit.to_CCfile(folder=info.dir.RefCCOrbit)
 
 
 def test_descending_orbit():
@@ -131,8 +131,8 @@ def test_descending_orbit():
     info = PathInfo()
     reforbit = CS2RefOrbit()
     reforbit.limit_region(lat_limit=[82., 88.], lon_limit=[-120., -40.])
-    reforbit.from_file(os.path.join(info.dir.RefCCOrbit, info.file.example_des_orbit))
-    reforbit.to_CCfile(folder=info.dir.SampleData)
+    reforbit.from_file(os.path.join(info.dir.RefOrbit, info.file.example_des_orbit))
+    reforbit.to_CCfile(folder=info.dir.RefCCOrbit)
 
 
 if __name__ == '__main__':
