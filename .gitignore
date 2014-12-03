@@ -1,3 +1,5 @@
+testoutput/
+
 #################
 ## Eclipse
 #################
@@ -202,6 +204,7 @@ sdist/
 develop-eggs/
 .installed.cfg
 .spyderproject
+.spyterworkspace
 
 # Installer logs
 pip-log.txt
