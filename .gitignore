@@ -204,7 +204,7 @@ sdist/
 develop-eggs/
 .installed.cfg
 .spyderproject
-.spyterworkspace
+.spyderworkspace
 
 # Installer logs
 pip-log.txt
