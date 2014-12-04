@@ -209,13 +209,13 @@ class CS2RefOrbit(object):
         lon_0 = np.median(self.lon)
         plt.figure("SAR/SIN Debug Map")
         m = Basemap(projection='stere', lat_0=lat_0, lon_0=lon_0, lat_ts=lat_0,
-                    resolution = 'i', width=1e6, height=1e6)
+                    resolution = 'i', width=5e6, height=5e6)
         m.drawcoastlines(color="black", linewidth=0.1)
         m.fillcontinents(color='#AAAAAA')
         m.drawmapboundary()
         xc, yc = m(self.lon, self.lat)
         m.scatter(xc[np.where(~self.cs2_is_sarin)], yc[np.where(~self.cs2_is_sarin)], 
-                     s=20, color='blue', edgecolors='none', zorder=100, label='SAR')        
+                     s=20, color='blue', edgecolors='none', zorder=100, label='SAR / Unclassified')        
         m.scatter(xc[np.where(self.cs2_is_sarin)], yc[np.where(self.cs2_is_sarin)], 
                      s=20, color='red', edgecolors='none', zorder=100, label='SIN')
         plt.legend()
