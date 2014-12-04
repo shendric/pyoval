@@ -41,4 +41,8 @@ if __name__ == '__main__':
     # test with lincoln sea standard orbit
     test_uofa_orbits(orbit=5399, 
                      lat_limit=[82., 88.], 
-                     lon_limit=[-120., -40.])                                             
+                     lon_limit=[-120., -40.])
+    # test with problematic (NPI) orbit                 
+    test_uofa_orbits(orbit=20929, 
+                     lat_limit=[60., 88.], 
+                     lon_limit=[-180., 180.])                                                
