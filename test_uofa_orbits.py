@@ -29,11 +29,13 @@ def test_uofa_orbits(orbit=5399, lon_limit=[82., 88.], lat_limit=[-120., -40.]):
     # Initialize reference orbit with given regions of interest
     reforbit = CS2RefOrbit()
     reforbit.limit_region(lat_limit=lat_limit, lon_limit=lon_limit)
+    # This is new
+    reforbit.set_sin_detection(False)
     # Locate orbit file for given orbit
     reforbit_file = glob.glob(os.path.join(info.dir.RefOrbit, '*'+str(orbit)+'_*'))
     reforbit.from_file(reforbit_file[0])
     # Display orbit position debug map
-    reforbit.sarin_debug_map()
+    reforbit.debug_map()
                                              
 if __name__ == '__main__':
     # test with lincoln sea standard orbit

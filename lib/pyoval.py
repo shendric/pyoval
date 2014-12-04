@@ -70,8 +70,9 @@ class CS2RefOrbit(object):
         self.lat_limit = [-90.1, 90.1]
         self.lon_limit = [-180.1, 180.1]
         self._pointdist_tresh = 303.0
-        self._sarin_dist_treshold = 0.5
+        self._sarin_dist_treshold = 1.0
         self._dist_max_filter_width = 11
+        self._sin_detection = True
 
     def from_file(self, filename, corner_coords=False):
         """
@@ -110,6 +111,14 @@ class CS2RefOrbit(object):
             self.lon_limit = lon_limit
         if isinstance(lat_limit, list):
             self.lat_limit = lat_limit
+            
+    def set_sin_detection(self, value):
+        """ 
+        Switch for automatic detection of SARIn mode (default: True)
+        value : Bool
+        """
+        if not isinstance(value, bool): raise AssertionError('value not of type bool')
+        self._sin_detection = value
 
 
     def __roi_index(self, lon, lat):
@@ -175,23 +184,27 @@ class CS2RefOrbit(object):
         as SIN (SARin) measurment positions
         XXX: This is a hot fix and in future orbit positions should be used
         """
-        self.__classify_sarin()
-        #self.sarin_debug_map()
-        sarin = np.where(self.cs2_is_sarin)[0]
-        # Check if SIN section in data
-        if True not in self.cs2_is_sarin:
-            return
-        # Get mean great circle track for SIN secion
-        gc0, gc1 = self.__sarin_mean_gc()
-        meanorbit = GreatCircleTrack(gc0, gc1)
-        meanorbit.add_track(self.lon[sarin], self.lat[sarin])
-        meanorbit.project()
-        #meanorbit.debug_map()
-        self.lon[sarin] = meanorbit.gcp[:, 0]
-        self.lat[sarin] = meanorbit.gcp[:, 1]
+        if self._sin_detection:
+            self.__classify_sarin()
+            #self.sarin_debug_map()
+            sarin = np.where(self.cs2_is_sarin)[0]
+            # Check if SIN section in data
+            if True not in self.cs2_is_sarin:
+                return
+            # Get mean great circle track for SIN secion
+            gc0, gc1 = self.__sarin_mean_gc()
+            meanorbit = GreatCircleTrack(gc0, gc1)
+            meanorbit.add_track(self.lon[sarin], self.lat[sarin])
+            meanorbit.project()
+            #meanorbit.debug_map()
+            self.lon[sarin] = meanorbit.gcp[:, 0]
+            self.lat[sarin] = meanorbit.gcp[:, 1]
+        else:
+            # For compability reason set classification 
+            self.cs2_is_sarin = np.zeros(shape=(self.n_records), dtype=bool)
 
-    def sarin_debug_map(self):
-        """ Creates a quick & dirty map of SAR/SIN classification """
+    def debug_map(self):
+        """ Creates a quick & dirty map of SAR/SIN classification and corner coordinates """
         lat_0 = np.median(self.lat)
         lon_0 = np.median(self.lon)
         plt.figure("SAR/SIN Debug Map")
