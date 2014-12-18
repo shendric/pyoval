@@ -111,9 +111,9 @@ class CS2RefOrbit(object):
             self.lon_limit = lon_limit
         if isinstance(lat_limit, list):
             self.lat_limit = lat_limit
-            
+
     def set_sin_detection(self, value):
-        """ 
+        """
         Switch for automatic detection of SARIn mode (default: True)
         value : Bool
         """
@@ -200,7 +200,7 @@ class CS2RefOrbit(object):
             self.lon[sarin] = meanorbit.gcp[:, 0]
             self.lat[sarin] = meanorbit.gcp[:, 1]
         else:
-            # For compability reason set classification 
+            # For compability reason set classification
             self.cs2_is_sarin = np.zeros(shape=(self.n_records), dtype=bool)
 
     def debug_map(self):
@@ -214,13 +214,13 @@ class CS2RefOrbit(object):
         m.fillcontinents(color='#AAAAAA')
         m.drawmapboundary()
         xc, yc = m(self.lon, self.lat)
-        m.scatter(xc[np.where(~self.cs2_is_sarin)], yc[np.where(~self.cs2_is_sarin)], 
-                     s=20, color='blue', edgecolors='none', zorder=100, label='SAR / Unclassified')        
-        m.scatter(xc[np.where(self.cs2_is_sarin)], yc[np.where(self.cs2_is_sarin)], 
+        m.scatter(xc[np.where(~self.cs2_is_sarin)], yc[np.where(~self.cs2_is_sarin)],
+                     s=20, color='blue', edgecolors='none', zorder=100, label='SAR / Unclassified')
+        m.scatter(xc[np.where(self.cs2_is_sarin)], yc[np.where(self.cs2_is_sarin)],
                      s=20, color='red', edgecolors='none', zorder=100, label='SIN')
         plt.legend()
         plt.show()
-        
+
     def __classify_sarin(self):
         """ Classify SARin points based on the variation from the median distance """
         orbit_typical_dist = np.median(self.pointdist)
@@ -759,7 +759,6 @@ class CS2OrbitResPlot(object):
         cs2fp_faces.set_clim(vmin=0, vmax=3)
         self.ax_map.add_collection(cs2fp_faces)
 
-
         # Label time steps on track (according to xticks in data and time_delte plots)
         dt_ticks = self.ax_data.xaxis.get_majorticklocs()
         for dt_tick in dt_ticks:
@@ -791,7 +790,7 @@ class CS2OrbitResPlot(object):
         cb.ax.tick_params(labelsize=self._fontsize_map_tick_labels)
         cb.solids.set_edgecolor("1.0")
         cb.outline.set_linewidth(0.5)
-        cb.outline.set_color("1.0")
+        cb.outline.set_alpha(0.0)
         for t in cb.ax.get_yticklines(): t.set_color("1.0")
         cb.ax.set_yticklabels(['1', '10', '100', '1000+ Samples'])
         cb.ax.tick_params('both', length=0.1, which='major', pad=-5)
@@ -892,7 +891,7 @@ class CS2OrbitResPlot(object):
                                    dashes=[], linewidth=linewidth,
                                    fontsize=self._fontsize_map_tick_labels)
 
-        self.basemap.drawmeridians(np.arange(0, 360, lonstep), labels=lonlabels, 
+        self.basemap.drawmeridians(np.arange(0, 360, lonstep), labels=lonlabels,
                                    latmax=88, color=color,
                                    dashes=[], linewidth=linewidth,
                                    fontsize=self._fontsize_map_tick_labels)
