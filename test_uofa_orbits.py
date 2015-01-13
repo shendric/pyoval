@@ -14,11 +14,11 @@ class PathInfo():
     def __init__(self):
         # Path to reference orbit files
         self.dir = EmptyObject()
-        self.dir.workspace = os.path.dirname(__file__)
-        self.dir.SampleData = os.path.join(self.dir.workspace, 'testdata')
-        self.dir.RefOrbit = os.path.join(self.dir.SampleData, 'cs2_orbit')
-        self.dir.RefCCOrbit = os.path.join(self.dir.SampleData, 'cs2cc')
-        self.dir.SampleFigures = os.path.join(self.dir.workspace, 'testoutput')
+        self.dir.workspace = '/Volumes/Data/OneDrive/CryoVal-SI/GoldenDays/'
+        self.dir.SampleData = os.path.join(self.dir.workspace,'20120402')
+        self.dir.RefOrbit = os.path.join(self.dir.workspace, '20120402')
+        self.dir.RefCCOrbit = os.path.join(self.dir.workspace, '20120402')
+        self.dir.SampleFigures = self.dir.SampleData
                                              
 
 def test_uofa_orbits(orbit=5399, lon_limit=[82., 88.], lat_limit=[-120., -40.]):
@@ -33,16 +33,17 @@ def test_uofa_orbits(orbit=5399, lon_limit=[82., 88.], lat_limit=[-120., -40.]):
     reforbit.set_sin_detection(False)
     # Locate orbit file for given orbit
     reforbit_file = glob.glob(os.path.join(info.dir.RefOrbit, '*'+str(orbit)+'_*'))
+    print reforbit_file
     reforbit.from_file(reforbit_file[0])
     # Display orbit position debug map
     reforbit.debug_map()
+    reforbit.to_CCfile(folder=info.dir.RefCCOrbit)
                                              
 if __name__ == '__main__':
     # test with lincoln sea standard orbit
-    test_uofa_orbits(orbit=5399, 
-                     lat_limit=[82., 88.], 
-                     lon_limit=[-120., -40.])
+
     # test with problematic (NPI) orbit                 
-    test_uofa_orbits(orbit=20929, 
+    test_uofa_orbits(orbit = 10520, 
                      lat_limit=[60., 88.], 
-                     lon_limit=[-180., 180.])                                                
+                     lon_limit=[-180.1, 180.1])
+                                                

@@ -879,7 +879,7 @@ class CS2OrbitResPlot(object):
 
 
 
-    def __add_grid(self, latstep=0.1, lonstep=1, latlabel=False, lonlabel=False,
+    def __add_grid(self, latstep=0.1, lonstep=2, latlabel=False, lonlabel=False,
                          linewidth=0.2, color='#FFFFFF'):
 
         latlabels = [0,0,0,0]
