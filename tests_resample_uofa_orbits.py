@@ -17,16 +17,16 @@ class PathInfo():
         # Path to reference orbit files
         self.dir = EmptyObject()
         self.dir.workspace = '/Volumes/Data/OneDrive/CryoVal-SI/GoldenDays/'
-        self.dir.SampleData = os.path.join(self.dir.workspace,'20140326')
+        self.dir.SampleData = os.path.join(self.dir.workspace,'20130424')
         self.dir.RefOrbit = self.dir.SampleData
         self.dir.RefCCOrbit = self.dir.SampleData
         self.dir.SampleFigures = self.dir.SampleData
         # Files
         self.file = EmptyObject()
-        self.file.example_orbit = r'Location_file_21011_20140326T090003_20140326T102353.txt'
+        #self.file.example_orbit = r'Location_file_21011_20140326T090003_20140326T102353.txt'
         #self.file.example_des_orbit = r'Location_file_10520_20120402T110853_20120402T124403_L1B_vBC.txt'
-        self.file.example_aem = r'20140326_allfinal.dat'
-        #self.file.example_oib = r'OIB_20140326_IDCSI2.txt'
+        #self.file.example_aem = r'20140321_allfinal.dat'
+        self.file.example_oib = r'OIB_20130424_IDCSI2.txt'
 
 def example_calc_corner_coordinates(orbit=10520,lon_limit=[-180.1, 180.1], lat_limit=[60., 88.]):
     """Calculate Corner Coordinates from reference orbit files"""
@@ -77,6 +77,7 @@ def example_resample_oib(orbit=10520):
     #       * arrays exist for time, longitude, latitude, value (e.g. thickness, freeboard, ....)
     #       * time information is available as python datetime object (time zone UTC())
     oib_file = os.path.join(info.dir.SampleData, info.file.example_oib)
+    print oib_file
     oib = read_OIB(oib_file)
 
     #===================================================================================
@@ -204,9 +205,12 @@ def test_descending_orbit():
 
 
 if __name__ == '__main__':
-    example_calc_corner_coordinates(orbit=21011,
-                                    lat_limit=[60., 88.], 
-                                    lon_limit=[-180.1, 180.1])
-    example_resample_embird(orbit=21011)
+    #example_calc_corner_coordinates(orbit=21011,
+    #                                lat_limit=[60., 88.], 
+    #                                lon_limit=[-180.1, 180.1])
+    #example_resample_embird(orbit=16139)
+    #example_resample_embird(orbit=21077)
+    example_resample_oib(orbit=16139)
+    #example_resample_oib(orbit=21092)
     #test_descending_orbit()
     #test_asscending_orbit()
