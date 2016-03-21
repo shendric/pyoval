@@ -1195,7 +1195,7 @@ def points_in_polygon(x, y, px, py, return_type='bool'):
     """
     from shapely.geometry import Polygon
     from shapely.geometry import Point
-
+    from shapely.prepared import prep
     # Sanity checks
     if np.shape(x) != np.shape(y):
         raise ValueError('Position of input points are of different shape')
@@ -1209,14 +1209,13 @@ def points_in_polygon(x, y, px, py, return_type='bool'):
     px_closed = np.concatenate((px, [px[0]]))
     py_closed = np.concatenate((py, [py[0]]))
     polygon_points = np.ndarray(shape=(n_polygon_points+1, 2), dtype=np.float32)
-    for j in np.arange(n_polygon_points+1):
-        polygon_points[j, 0] = px_closed[j]
-        polygon_points[j, 1] = py_closed[j]
-    polygon = Polygon(polygon_points)
+    polygon_points[:, 0] = px_closed[:] #this is one of the advantages of ndarrays
+    polygon_points[:, 1] = py_closed[:] #this is one of the advantages of ndarrays
+    polygon = prep(Polygon(polygon_points))
     # Check if each point is in Polygon
-    in_polygon = np.ndarray(shape=(n_points), dtype=np.bool)
-    for i in np.arange(n_points):
-        in_polygon[i] = polygon.contains(Point(x[i], y[i]))
+    in_polygon = np.asarray(map(prp.contains,(map(Point,x,y))),dtype=bool) #Uses prepared polygon. this can be much faster for large lists of points)
+    #for i in np.arange(n_points):
+    #    in_polygon[i] = polygon.contains(Point(x[i], y[i]))
     if return_type == 'bool':
         return in_polygon
     elif return_type == 'masked':
