@@ -28,6 +28,7 @@ __author__ = "Stefan Hendricks, AWI"
 
 
 import numpy as np
+import bottleneck as bn
 import os
 import sys
 
@@ -88,6 +89,7 @@ class CS2RefOrbit(object):
 
         if corner_coords:
             self.orbit = int(self.filename.split('_')[2])
+            #self.orbit = int(self.filename.split('_')[1]) #for subset orbit files (CS2ORB*_V001)
             self.__readCCFile()
         else:
             self.orbit = int(self.filename.split('_')[2])
@@ -96,7 +98,9 @@ class CS2RefOrbit(object):
             self.__calc_pointdist()
             self.__correct_sarin_center_coords()
             self.__dist_filter()
-            self.__calc_fp_corner_coords()
+            self.__calc_fp_corner_coords() #standard footprint
+            #self.__calc_fp_corner_coords(actr_fp=5000.0)
+            #self.__calc_fp_corner_coords(actr_fp=20000.0)
 
 
     def limit_region(self, lon_limit=None, lat_limit=None):
@@ -313,6 +317,7 @@ class CS2RefOrbit(object):
             self.__actr_fp = actr_fp # Custom across track footprint
         else:
             self.__actr_fp = 1650.0  # Standard across track footprint
+        print "Footprint width= ",self.__actr_fp
         self.corner_pos = np.ndarray(shape=(2, 4, self.n_records), dtype=np.float64)
         for i in np.arange(self.n_records):
             self.corner_pos[:,:,i] = geobox(self.lon[i], self.lat[i], # center position
@@ -437,9 +442,11 @@ class CS2OrbitResData(object):
 
         Thickness PDF    0cm  -  500cm, bin size = 10cm
                        500cm  - 2000cm, bin size = 50cm
+                       
+        SSH PDF         -3000cm - 3000cm, bin size = 5cm
         Arguments:
         datatype : str
-            Valid choices: 'freeboard' | 'thickness'
+            Valid choices: 'freeboard' | 'thickness' | 'ssh'
         """
         if datatype.lower() == 'freeboard':
             self.set_pdf_bins(np.concatenate((np.linspace(0, 50, 50/2+1),
@@ -448,8 +455,10 @@ class CS2OrbitResData(object):
         elif datatype.lower() == 'thickness':
             self.set_pdf_bins(np.concatenate((np.linspace(0, 500, 500/10+1),
                                               np.linspace(550, 2000, 1500/50)))*0.01)
+        elif datatype.lower() == 'ssh':
+            self.set_pdf_bins((np.linspace(-3000,3000,6000/5+1))*0.01)
         else:
-            raise ValueError('Wrong datatype string:\nValid choices: \'freeboard\', \'thickness\'')
+            raise ValueError('Wrong datatype string:\nValid choices: \'freeboard\', \'thickness\', \'ssh\'')
 
 
     def set_pdf_bins(self, bins):
@@ -494,12 +503,15 @@ class CS2OrbitResData(object):
         if not isinstance(unit, str):
             raise ValueError('Argument needs to be of type string')
         self.data_unit = unit
+    
+    
 
-
-    def resample(self):
+    def resample(self,timer=False):
         """
         Perform the data resampling
+        Set timer to true to time execution
         """
+        import time
         # Check preconditions:
         if not self.__flag_orbit_pos:
             raise ValueError('Use method add_cs2orbit to add footprint loctions before resampling')
@@ -508,7 +520,7 @@ class CS2OrbitResData(object):
         if not self.__flag_pdf_bins:
             raise ValueError('Use method set_data_type of set_pdf_bins to add binning information before resampling')
 
-        # Prepare data fiels
+        # Prepare data fields
         self.n_samples = np.zeros(shape=(self.cs2fp.n_records), dtype=np.int32)
         self.time_offset_seconds = np.ones(shape=(self.cs2fp.n_records), dtype=np.float32)*np.nan
         self.res_mean = np.zeros(shape=(self.cs2fp.n_records), dtype=np.float32)*np.nan
@@ -518,17 +530,27 @@ class CS2OrbitResData(object):
         self.pdf_scaled = np.zeros(shape=(self.cs2fp.n_records, self._nbins), dtype=np.float32)
         self.pdf_scale_fact = np.zeros(shape=(self.cs2fp.n_records), dtype=np.float32)
         self.cs2fp_points_list = np.ndarray(shape=(self.cs2fp.n_records), dtype=object)
-
+        num=0
+        if timer:
+            StartTimeRes=time.clock()
         # All clear, start resampling
         for i in np.arange(self.cs2fp.n_records):
+            totalnum=self.cs2fp.n_records
+            #if float(num) % 10.0 == 0:
+            #    print "Record"+str(num)+" of "+str(totalnum)
+            if i % int(totalnum/20.0) == 0:
+                print (str(num*5)+"%, Time:"+str(datetime.datetime.now()))
+                num+=1
             # Define CS-2 footprint as polygon
             cs2fp_x = [self.cs2fp.lon_ur[i], self.cs2fp.lon_ul[i], self.cs2fp.lon_ll[i], self.cs2fp.lon_lr[i]]
             cs2fp_y = [self.cs2fp.lat_ur[i], self.cs2fp.lat_ul[i], self.cs2fp.lat_ll[i], self.cs2fp.lat_lr[i]]
             # CryoSat-2 tracks are mostly norths-south in cal/val regions
             # -> Use a latitude filter to speed things up again
             # -> look only at values +/- 0.02 degree latitude around footprint center coordinate
-            data_subset = np.where(np.abs(self.cs2fp.lat[i] - self.cv_lat) < 0.02)[0]
-
+            data_subset = np.where(np.abs(self.cs2fp.lat[i] - self.cv_lat) < 0.02)[0] #for standard footprint
+            #data_subset = np.where(np.abs(self.cs2fp.lat[i] - self.cv_lat) < 0.2)[0] #for large footprints(JB)
+            if len(np.shape(data_subset)) > 1:
+                raise ValueError("Error datasubset dimensions too large.")
             # Check if any Cal/Val data point near footprint center coordinate
             if len(data_subset) == 0:
                 continue
@@ -548,14 +570,14 @@ class CS2OrbitResData(object):
             self.cs2fp_points_list[i] = cs2fp_points
             # Analyze statistics of footprint cal/val data
             self.n_samples[i] = len(cs2fp_points)
-            self.res_mean[i] = np.nanmean(self.cv_data[cs2fp_points])
-            self.res_median[i] = np.median(self.cv_data[cs2fp_points])
-            self.res_sdev[i] = np.nanstd(self.cv_data[cs2fp_points])
+            self.res_mean[i] = bn.nanmean(self.cv_data[cs2fp_points])
+            self.res_median[i] = bn.median(self.cv_data[cs2fp_points])
+            self.res_sdev[i] = bn.nanstd(self.cv_data[cs2fp_points])
             # Calculate maximum time difference
             time_delta = self.cs2fp.time[i] - self.cv_time[cs2fp_points]
             max_index = np.argmax(np.abs(time_delta))
             self.time_offset_seconds[i] = time_delta[max_index].total_seconds()
-            # Calculate pdf
+            ## Calculate pdf
             # Scale the pdf result that maximum will be on
             # Number of points per bin = pdf_scaled * pdf_scale_fact
             freq, bins = np.histogram(self.cv_data[cs2fp_points], bins=self.bins, density=True)
@@ -563,9 +585,111 @@ class CS2OrbitResData(object):
             self.pdf_scaled[i,:] = freq.astype(np.float32)/self.pdf_scale_fact[i]
             self.res_mode[i] = self.bin_center[np.argmax(freq)]
 
+        if timer:
+            StopTimeRes=time.clock() 
+        print "Total ResTime = ", StopTimeRes-StartTimeRes
         # Get overlap between orbit and cal/cal data
         # (remove empty footprints at end & beginning of orbit)
         self._get_overlap()
+        
+    def resampleIDX(self,timer=False):
+        '''
+        Perform the data resampling using a spatial index (RTREE), 
+        Shapely polygons and prepared polygons (and enable speedups),
+        and use bottneck to do some calculations (instead of numpy).
+        
+        Usage: 
+            instead of calling resample() call resampleIDX()
+        
+        Set timer to true if you want to time the index generation and resampling.
+        '''
+        
+        #Check preconditions
+        if not self.__flag_orbit_pos:
+            raise ValueError('Use method add_cs2orbit to add footprint loctions before resampling')
+        if not self.__flag_calval_data:
+            raise ValueError('Use method add_calval_data to add high resolution data before resampling')
+        if not self.__flag_pdf_bins:
+            raise ValueError('Use method set_data_type of set_pdf_bins to add binning information before resampling')
+    
+        #Load modules
+        import time   
+        from rtree import index
+        from rtree.index import Rtree
+        import time
+        from shapely.geometry import Point,Polygon
+        from shapely import speedups
+        speedups.enable()
+        from shapely.prepared import prep
+        import bottleneck as bn
+        
+        # Prepare data fields
+        self.n_samples = np.zeros(shape=(self.cs2fp.n_records), dtype=np.int32)
+        self.time_offset_seconds = np.ones(shape=(self.cs2fp.n_records), dtype=np.float32)*np.nan
+        self.res_mean = np.zeros(shape=(self.cs2fp.n_records), dtype=np.float32)*np.nan
+        self.res_median = np.zeros(shape=(self.cs2fp.n_records), dtype=np.float32)*np.nan
+        self.res_sdev = np.zeros(shape=(self.cs2fp.n_records), dtype=np.float32)*np.nan
+        self.res_mode = np.zeros(shape=(self.cs2fp.n_records), dtype=np.float32)*np.nan
+        self.pdf_scaled = np.zeros(shape=(self.cs2fp.n_records, self._nbins), dtype=np.float32)
+        self.pdf_scale_fact = np.zeros(shape=(self.cs2fp.n_records), dtype=np.float32)
+        self.cs2fp_points_list = np.ndarray(shape=(self.cs2fp.n_records), dtype=object)
+        self.polygons = np.ndarray(shape=(self.cs2fp.n_records), dtype=object)
+        
+        if timer:
+            StartTimeIDX=time.clock()
+        #Generate Spatial Index and Save to disk
+        self.idx = index.Rtree('bulk',generator(), overwrite=1)
+        del self.idx
+        self.idx=index.Index("bulk")
+        if timer:
+            StopTimeIDX=time.clock()
+            StartTimeRes=StopTimeIDX
+        #Do the resampling
+        for i in np.arange(self.cs2fp.n_records):
+            fp_x = [self.cs2fp.lon_ur[i], self.cs2fp.lon_ul[i], 
+                    self.cs2fp.lon_ll[i], self.cs2fp.lon_lr[i],
+                    self.cs2fp.lon_ur[i]]
+            fp_y = [self.cs2fp.lat_ur[i], self.cs2fp.lat_ul[i], 
+                    self.cs2fp.lat_ll[i], self.cs2fp.lat_lr[i],
+                    self.cs2fp.lat_ur[i]]
+            polygon_points[:,0]=fp_x[:]
+            polygon_points[:,1]=fp_y[:]
+            self.polygons[i]=Polygon(polygon_points)
+            result = np.array(list(idx.intersection(self.polygons[i].bounds,objects="raw")))
+            if len(result) !=0:
+                prp = prep(self.polygons[i])
+                hits = np.nonzero(map(prp.contains,(map(Point,self.cv_lon[result],self.cv_lat[result]))))[0]
+                if len(hits)>0:
+                    if len(np.where(np.isfinite(self.cv_data[result[hits]]))[0]) == 0 :
+                        continue
+                    self.cs2fp_points_list[i] = result[hits]
+                    self.n_samples[i] = len(hits)
+                    self.res_mean[i] = bn.nanmean(self.cv_data[result[hits]])
+                    self.res_median[i] = bn.median(self.cv_data[result[hits]])
+                    self.res_sdev[i] = bn.nanstd(self.cv_data[result[hits]])
+                    time_delta = self.cs2fp.time[i] - self.cv_time[result[hits]]
+                    max_index = np.argmax(np.abs(time_delta))
+                    self.time_offset_seconds[i] = time_delta[max_index].total_seconds()
+                    #Calculate the histogram
+                    freq,bins = np.histogram(self.cv_data[result[hits]], bins=self.bins, density=True)
+                    self.pdf_scale_fact[i] = np.amax(freq)
+                    self.pdf_scaled[i,:] = freq.astype(np.float32)/self.pdf_scale_fact[i]
+                    self.res_mode[i] = self.bin_center[np.argmax(freq)]
+        if timer:
+            StopTimeRes=time.clock() 
+        print "Time to Generate Index = ", StopTimeIDX-StartTimeIDX
+        print "Time to Resample Data = ", StopTimeRes -StartTimeRes
+        print "Total ResTime = ", StopTimeRes-StartTimeIDX            
+        # Get overlap between orbit and cal/cal data
+        # (remove empty footprints at end & beginning of orbit)
+        self._get_overlap()
+    
+    def generator(self):
+        '''
+        A generator function to fill the rtree index
+        '''
+        for i in np.arange(len(self.cv_lat)):
+            yield(i,(self.cv_lon[i],self.cv_lat[i],cv_lon[i],cv_lat[i]),i)
 
     def to_file(self, folder):
         """
@@ -586,9 +710,12 @@ class CS2OrbitResData(object):
         # Create filename
         i0 = self.overlap[0]
         i1 = self.overlap[-1]
+
         start_time = self.cs2fp.time[i0].strftime(str_fmt_dt_filename)
         stop_time = self.cs2fp.time[i1].strftime(str_fmt_dt_filename)
-        filename = str_fmt_filename% (self.data_label, self.cs2fp.orbit, start_time, stop_time)
+        print start_time
+        print stop_time
+        filename = str_fmt_filename % (self.data_label, self.cs2fp.orbit, start_time, stop_time)
         fileout = os.path.join(folder, filename)
         # Write data to file
         fhandle = open(fileout,'w')
@@ -1091,7 +1218,7 @@ class GreatCircleTrack():
         """ Mean earth ellipsoidial radius at latitude range in meter """
         sma  = 6378137.0
         smn  = 6356752.3142755
-        mlat = np.nanmean(lat)
+        mlat = bn.nanmean(lat)
         r = np.sqrt( ((sma**2.0 / np.cos(mlat))**2.0 + (smn**2.0 / np.sin(mlat))**2.0) / \
                      ((sma / np.cos(mlat))**2.0 + (smn / np.sin(mlat))**2.0) )
         return r
@@ -1195,7 +1322,9 @@ def points_in_polygon(x, y, px, py, return_type='bool'):
     """
     from shapely.geometry import Polygon
     from shapely.geometry import Point
-
+    from shapely import speedups
+    from shapely.prepared import prep
+    speedups.enable()
     # Sanity checks
     if np.shape(x) != np.shape(y):
         raise ValueError('Position of input points are of different shape')
@@ -1203,20 +1332,35 @@ def points_in_polygon(x, y, px, py, return_type='bool'):
         raise ValueError('Position of polygon points are of different shape')
     if len(px) < 3:
         raise ValueError('Not enough points to span polygon (px, py)')
+    
+    #print np.shape(x)
+    
     n_points = len(x)
     n_polygon_points = len(px)
     # Set up the polygon
     px_closed = np.concatenate((px, [px[0]]))
     py_closed = np.concatenate((py, [py[0]]))
     polygon_points = np.ndarray(shape=(n_polygon_points+1, 2), dtype=np.float32)
-    for j in np.arange(n_polygon_points+1):
-        polygon_points[j, 0] = px_closed[j]
-        polygon_points[j, 1] = py_closed[j]
-    polygon = Polygon(polygon_points)
+    polygon_points[:, 0] = px_closed[:] #this is one of the advantages of ndarrays
+    polygon_points[:, 1] = py_closed[:] #this is one of the advantages of ndarrays
+    #for j in np.arange(n_polygon_points+1):
+    #    polygon_points[j, 0] = px_closed[j]
+    #    polygon_points[j, 1] = py_closed[j]
+    #polygon = Polygon(polygon_points)
     # Check if each point is in Polygon
-    in_polygon = np.ndarray(shape=(n_points), dtype=np.bool)
-    for i in np.arange(n_points):
-        in_polygon[i] = polygon.contains(Point(x[i], y[i]))
+    
+    #Modification (Justin Beckers, March 17,2016)
+    prp = prep(polygon)
+    in_polygon = np.asarray(map(prp.contains,(map(Point,x,y))),dtype=bool)
+    #Original pyoval code
+    #in_polygon = np.ndarray(shape=(n_points), dtype=np.bool)    
+    #for i in np.arange(n_points):
+    #    #if polygon.area >0.1: #when crossing the international dateline 
+    #    #    cv(polygon_points[:,0])
+    #    #    polygon=Polygon(polygon_points)
+    #    #    in_polygon[i]=polygon.contains(Point(x[i],y[i]))
+    #    #else:
+    #    in_polygon[i] = polygon.contains(Point(x[i], y[i]))
     if return_type == 'bool':
         return in_polygon
     elif return_type == 'masked':
